@@ -1,10 +1,31 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
 }
 
 android {
-    namespace = "com.thoughtworks.androidtrain"
+    signingConfigs {
+        val keystorePropertiesFile = rootProject.file("keystore.properties")
+        val keystoreProperties = Properties()
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+        create("debug_sign") {
+            keyAlias = keystoreProperties["debugKeyAlias"] as String
+            keyPassword = keystoreProperties["debugKeyPassword"] as String
+            storeFile = rootProject.file(keystoreProperties["debugStoreFile"] as String)
+            storePassword = keystoreProperties["debugStorePassword"] as String
+        }
+
+        create("release_sign") {
+            keyAlias = keystoreProperties["releaseKeyAlias"] as String
+            keyPassword = keystoreProperties["releaseKeyPassword"] as String
+            storeFile = rootProject.file(keystoreProperties["releaseStoreFile"] as String)
+            storePassword = keystoreProperties["releaseStorePassword"] as String
+        }
+    }
+        namespace = "com.thoughtworks.androidtrain"
     compileSdk = 34
 
     defaultConfig {
@@ -25,7 +46,21 @@ android {
                 "proguard-rules.pro"
             )
         }
-    }
+        getByName("debug") {
+            signingConfig = signingConfigs["debug_sign"]
+            isMinifyEnabled = false
+        }
+
+        getByName("release") {
+            signingConfig = signingConfigs["release_sign"]
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "$project.rootDir/tools/proguard-rules.pro"
+            )
+        }
+}
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
